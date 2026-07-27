@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Console — Pipeline Projects</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{ --bg:#ffffff; --ink:#1c2a3a; --muted:#7a8794; --line:#e7eaee; --panel:#fbfcfd; --shadow:0 1px 3px rgba(28,42,58,.06),0 1px 2px rgba(28,42,58,.08); --today:#e63946; }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+  .wrap{ max-width:1000px; margin:0 auto; padding:32px 24px 60px; }
+  header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:14px; border-bottom:2px solid var(--ink); }
+  h1{ font-size:24px; margin:0; }
+  .sub{ font-size:13px; color:var(--muted); margin-top:3px; }
+  .topActions{ display:flex; gap:8px; }
+  button{ font-family:inherit; cursor:pointer; border:none; border-radius:8px; padding:9px 15px; font-size:13.5px; font-weight:600; }
+  .btn-primary{ background:var(--ink); color:#fff; }
+  .btn-ghost{ background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+  .btn-ghost:hover{ border-color:#c3cad1; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-top:24px; }
+  .panel h2{ font-size:15px; margin:0 0 16px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:5px; }
+  .field input, .field select{ width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit; }
+  .row-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1fr auto; gap:12px; align-items:end; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; margin-top:6px; }
+  th, td{ text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th{ font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  select.permSelect{ padding:6px 8px; border:1.5px solid var(--line); border-radius:7px; font-size:12.5px; font-family:inherit; }
+  .save-row{ padding:4px 10px; font-size:12px; }
+  .note{ font-size:12px; color:var(--muted); margin-top:10px; }
+  .msg{ font-size:13px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:none; }
+  .msg.ok{ background:#f0fbf9; border:1px solid #bfe9e2; color:#1a9c6e; }
+  .msg.err{ background:#fff5f5; border:1px solid #f3c6c9; color:#e63946; }
+  .role-badge{ font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:#eef1f3; color:var(--muted); text-transform:uppercase; }
+  .role-badge.admin{ background:#eafaf3; color:#1a9c6e; }
+  .denied{ text-align:center; padding:80px 20px; color:var(--muted); }
+  .loading{ text-align:center; padding:80px 20px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap" style="display:none;">
+  <header>
+    <div>
+      <h1>Admin Console</h1>
+      <div class="sub">Create logins and control who can see or edit each tool</div>
+    </div>
+    <div class="topActions">
+      <a href="Hub.html" style="text-decoration:none;"><button class="btn-ghost">← Back to Home</button></a>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>Create a new login</h2>
+    <div class="msg" id="createMsg"></div>
+    <div class="row-grid">
+      <div class="field"><label>Email</label><input type="email" id="newEmail" placeholder="name@company.com"></div>
+      <div class="field"><label>Temporary password</label><input type="text" id="newPassword" placeholder="At least 6 characters"></div>
+      <div class="field"><label>Pipeline Dashboard</label>
+        <select id="newDashboard"><option value="none">No access</option><option value="view">View only</option><option value="edit" selected>View &amp; edit</option></select>
+      </div>
+      <div class="field"><label>Projects Log</label>
+        <select id="newProjectsLog"><option value="none">No access</option><option value="view">View only</option><option value="edit" selected>View &amp; edit</option></select>
+      </div>
+      <div class="field"><label>TV Display</label>
+        <select id="newTvDisplay"><option value="none" selected>No access</option><option value="view">View only</option><option value="edit">View &amp; edit</option></select>
+      </div>
+      <button class="btn-primary" id="btnCreate" style="height:38px;">+ Create Login</button>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-top:6px;">
+      <input type="checkbox" id="newIsAdmin" style="width:auto;"> Make this user an admin (can access this console too)
+    </label>
+    <div class="note">The new person can sign in right away at the Login page with this email and temporary password. They can reset it themselves later using "Forgot password?" on that page.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Existing users</h2>
+    <div class="msg" id="listMsg"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Pipeline Dashboard</th>
+          <th>Projects Log</th>
+          <th>TV Display</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="usersTbody"><tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px;">Loading…</td></tr></tbody>
+    </table>
+    <div class="note">To fully remove someone's login (not just their access), delete their account from the Firebase Console → Authentication tab. Setting all three tools to "No access" here immediately blocks them from every tool without deleting their login.</div>
+  </div>
+</div>
+
+<div id="loading" class="loading">Checking your access…</div>
+<div id="denied" class="denied" style="display:none;">
+  You don't have admin access.<br><a href="Hub.html">← Back to Home</a>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3PWH1eBz1QASb210urhkXV-w22uoln5g",
+    authDomain: "total-furniture-restoration.firebaseapp.com",
+    projectId: "total-furniture-restoration",
+    storageBucket: "total-furniture-restoration.firebasestorage.app",
+    messagingSenderId: "999099880709",
+    appId: "1:999099880709:web:0fa4239ea0379bcb38936c"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Secondary app instance so creating a new login doesn't sign the admin out of their own session.
+  const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+  const secondaryAuth = getAuth(secondaryApp);
+
+  function showMsg(el, text, ok){
+    el.textContent = text;
+    el.className = "msg " + (ok ? "ok" : "err");
+    el.style.display = "block";
+  }
+
+  async function loadUsers(){
+    const tbody = document.getElementById("usersTbody");
+    const listMsg = document.getElementById("listMsg");
+    try{
+      const snap = await getDocs(collection(db, "users"));
+      if(snap.empty){
+        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px;">No users yet.</td></tr>';
+        return;
+      }
+      const rows = [];
+      snap.forEach(d=>{
+        const u = d.data();
+        const uid = d.id;
+        const perms = u.permissions || {};
+        const isAdmin = u.role === "admin";
+        rows.push(`
+          <tr data-uid="${uid}">
+            <td>${u.email||"(no email)"} </td>
+            <td><span class="role-badge ${isAdmin?'admin':''}">${isAdmin?'Admin':'Member'}</span></td>
+            <td><select class="permSelect" data-key="dashboard">
+              <option value="none" ${perms.dashboard==="none"?"selected":""}>No access</option>
+              <option value="view" ${perms.dashboard==="view"?"selected":""}>View only</option>
+              <option value="edit" ${perms.dashboard==="edit"?"selected":""}>View &amp; edit</option>
+            </select></td>
+            <td><select class="permSelect" data-key="projectsLog">
+              <option value="none" ${perms.projectsLog==="none"?"selected":""}>No access</option>
+              <option value="view" ${perms.projectsLog==="view"?"selected":""}>View only</option>
+              <option value="edit" ${perms.projectsLog==="edit"?"selected":""}>View &amp; edit</option>
+            </select></td>
+            <td><select class="permSelect" data-key="tvDisplay">
+              <option value="none" ${perms.tvDisplay==="none"?"selected":""}>No access</option>
+              <option value="view" ${perms.tvDisplay==="view"?"selected":""}>View only</option>
+              <option value="edit" ${perms.tvDisplay==="edit"?"selected":""}>View &amp; edit</option>
+            </select></td>
+            <td><button class="btn-ghost save-row" data-uid="${uid}">Save</button></td>
+          </tr>`);
+      });
+      tbody.innerHTML = rows.join("");
+      tbody.querySelectorAll(".save-row").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const uid = btn.dataset.uid;
+          const tr = tbody.querySelector(`tr[data-uid="${uid}"]`);
+          const permissions = {};
+          tr.querySelectorAll(".permSelect").forEach(sel=>{ permissions[sel.dataset.key] = sel.value; });
+          btn.disabled = true; btn.textContent = "Saving…";
+          try{
+            await updateDoc(doc(db, "users", uid), { permissions });
+            btn.textContent = "Saved ✓";
+            setTimeout(()=>{ btn.textContent = "Save"; btn.disabled = false; }, 1200);
+          }catch(e){
+            btn.textContent = "Failed";
+            btn.disabled = false;
+            showMsg(listMsg, "Could not save that user's permissions. Please try again.", false);
+          }
+        });
+      });
+    }catch(e){
+      showMsg(listMsg, "Could not load the user list.", false);
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px;">Could not load users.</td></tr>';
+    }
+  }
+
+  document.getElementById("btnCreate").addEventListener("click", async ()=>{
+    const createMsg = document.getElementById("createMsg");
+    const email = document.getElementById("newEmail").value.trim();
+    const password = document.getElementById("newPassword").value;
+    const isAdmin = document.getElementById("newIsAdmin").checked;
+    const permissions = {
+      dashboard: document.getElementById("newDashboard").value,
+      projectsLog: document.getElementById("newProjectsLog").value,
+      tvDisplay: document.getElementById("newTvDisplay").value,
+    };
+    if(!email || !password){ showMsg(createMsg, "Enter an email and temporary password.", false); return; }
+    if(password.length < 6){ showMsg(createMsg, "Password must be at least 6 characters.", false); return; }
+
+    const btn = document.getElementById("btnCreate");
+    btn.disabled = true; btn.textContent = "Creating…";
+    try{
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      const newUid = cred.user.uid;
+      await setDoc(doc(db, "users", newUid), {
+        email, role: isAdmin ? "admin" : "member", permissions, createdAt: new Date().toISOString()
+      });
+      await signOut(secondaryAuth);
+      showMsg(createMsg, `Login created for ${email}.`, true);
+      document.getElementById("newEmail").value = "";
+      document.getElementById("newPassword").value = "";
+      document.getElementById("newIsAdmin").checked = false;
+      loadUsers();
+    }catch(err){
+      let msg = "Could not create that login.";
+      if(err.code === "auth/email-already-in-use") msg = "That email already has a login.";
+      if(err.code === "auth/invalid-email") msg = "That email address looks invalid.";
+      if(err.code === "auth/weak-password") msg = "Password is too weak — use at least 6 characters.";
+      showMsg(createMsg, msg, false);
+    }finally{
+      btn.disabled = false; btn.textContent = "+ Create Login";
+    }
+  });
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user){ window.location.href = "Login.html"; return; }
+    let profile = null;
+    try{
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if(snap.exists()) profile = snap.data();
+    }catch(e){}
+    document.getElementById("loading").style.display = "none";
+    if(!profile || profile.role !== "admin"){
+      document.getElementById("denied").style.display = "block";
+      return;
+    }
+    document.getElementById("wrap").style.display = "block";
+    loadUsers();
+  });
+</script>
+</body>
+</html>

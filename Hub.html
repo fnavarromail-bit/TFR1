@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pipeline Projects — Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{ --bg:#ffffff; --ink:#1c2a3a; --muted:#7a8794; --line:#e7eaee; --panel:#fbfcfd; --shadow:0 1px 3px rgba(28,42,58,.06),0 1px 2px rgba(28,42,58,.08); }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+  .wrap{ max-width:900px; margin:0 auto; padding:40px 24px; }
+  header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:34px; }
+  h1{ font-size:24px; margin:0; }
+  .who{ font-size:13px; color:var(--muted); margin-top:3px; }
+  button.signout{ background:#fff; border:1.5px solid var(--line); border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
+  button.signout:hover{ border-color:#c3cad1; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; }
+  .tile{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; text-decoration:none; color:var(--ink); display:block; transition:box-shadow .15s, border-color .15s; }
+  .tile:hover{ box-shadow:var(--shadow); border-color:#c3cad1; }
+  .tile h3{ margin:0 0 6px; font-size:17px; }
+  .tile p{ margin:0; font-size:13px; color:var(--muted); }
+  .badge{ display:inline-block; margin-top:12px; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+  .badge.edit{ background:#eafaf3; color:#1a9c6e; }
+  .badge.view{ background:#eef1f3; color:#7a8794; }
+  .empty{ text-align:center; color:var(--muted); padding:60px 20px; }
+  .loading{ text-align:center; color:var(--muted); padding:60px 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Pipeline Projects</h1>
+      <div class="who" id="whoLine">Loading…</div>
+    </div>
+    <button class="signout" id="btnSignOut">Sign Out</button>
+  </header>
+  <div id="content" class="loading">Loading your access…</div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3PWH1eBz1QASb210urhkXV-w22uoln5g",
+    authDomain: "total-furniture-restoration.firebaseapp.com",
+    projectId: "total-furniture-restoration",
+    storageBucket: "total-furniture-restoration.firebasestorage.app",
+    messagingSenderId: "999099880709",
+    appId: "1:999099880709:web:0fa4239ea0379bcb38936c"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const TOOLS = [
+    { key:"dashboard", name:"Pipeline Dashboard", desc:"Full project pipeline, financials, timeline.", href:"Pipeline-Dashboard.html" },
+    { key:"projectsLog", name:"Projects Log", desc:"Log actual costs and billing in the field.", href:"Field-Cost-Log.html" },
+    { key:"tvDisplay", name:"TV Display", desc:"Read-only timeline view for the office screen.", href:"TV-Display.html" },
+  ];
+
+  document.getElementById("btnSignOut").addEventListener("click", async ()=>{
+    await signOut(auth);
+    window.location.href = "Login.html";
+  });
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user){ window.location.href = "Login.html"; return; }
+    document.getElementById("whoLine").textContent = user.email;
+
+    let profile = null;
+    try{
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if(snap.exists()) profile = snap.data();
+    }catch(e){ /* fall through to empty state */ }
+
+    const content = document.getElementById("content");
+    if(!profile){
+      content.innerHTML = '<div class="empty">Your account doesn\'t have access set up yet.<br>Ask your administrator to assign your permissions.</div>';
+      return;
+    }
+
+    const perms = profile.permissions || {};
+    const isAdmin = profile.role === "admin";
+    const tiles = TOOLS.filter(t => (perms[t.key] === "view" || perms[t.key] === "edit"));
+
+    if(isAdmin){
+      tiles.push({ key:"admin", name:"Admin Console", desc:"Create logins and assign access.", href:"Admin-Console.html", forceEdit:true });
+    }
+
+    if(!tiles.length){
+      content.innerHTML = '<div class="empty">You don\'t have access to any tools yet.<br>Ask your administrator to assign your permissions.</div>';
+      return;
+    }
+
+    content.className = "grid";
+    content.innerHTML = tiles.map(t=>{
+      const level = t.forceEdit ? "edit" : perms[t.key];
+      const badge = level === "edit" ? '<span class="badge edit">Edit access</span>' : '<span class="badge view">View only</span>';
+      return `<a class="tile" href="${t.href}"><h3>${t.name}</h3><p>${t.desc}</p>${badge}</a>`;
+    }).join("");
+  });
+</script>
+</body>
+</html>
