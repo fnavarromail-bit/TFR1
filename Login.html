@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sign In — Pipeline Projects</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{ --bg:#ffffff; --ink:#1c2a3a; --muted:#7a8794; --line:#e7eaee; --panel:#fbfcfd; --shadow:0 1px 3px rgba(28,42,58,.06),0 1px 2px rgba(28,42,58,.08); }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink); font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+  .wrap{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card{ width:380px; max-width:92vw; background:#fff; border:1px solid var(--line); border-radius:14px; padding:32px 30px; box-shadow:var(--shadow); }
+  h1{ font-size:22px; margin:0 0 4px; text-align:center; }
+  .sub{ font-size:13px; color:var(--muted); text-align:center; margin-bottom:24px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:5px; }
+  .field input{ width:100%; padding:10px 11px; border:1.5px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit; }
+  .field input:focus{ outline:none; border-color:#9aa6b2; }
+  button{ width:100%; padding:11px; border:none; border-radius:8px; background:var(--ink); color:#fff; font-size:14px; font-weight:600; cursor:pointer; margin-top:6px; }
+  button:hover{ opacity:.92; }
+  button:disabled{ opacity:.6; cursor:default; }
+  .error{ background:#fff5f5; border:1px solid #f3c6c9; color:#e63946; font-size:12.5px; padding:9px 11px; border-radius:8px; margin-bottom:14px; display:none; }
+  .link{ text-align:center; margin-top:16px; font-size:12.5px; }
+  .link a{ color:var(--ink); cursor:pointer; text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Pipeline Projects</h1>
+    <div class="sub">Sign in to continue</div>
+    <div class="error" id="errBox"></div>
+    <div class="field"><label>Email</label><input type="email" id="email" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="password" autocomplete="current-password"></div>
+    <button id="btnSignIn">Sign In</button>
+    <div class="link"><a id="btnReset">Forgot password?</a></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3PWH1eBz1QASb210urhkXV-w22uoln5g",
+    authDomain: "total-furniture-restoration.firebaseapp.com",
+    projectId: "total-furniture-restoration",
+    storageBucket: "total-furniture-restoration.firebasestorage.app",
+    messagingSenderId: "999099880709",
+    appId: "1:999099880709:web:0fa4239ea0379bcb38936c"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const errBox = document.getElementById("errBox");
+  function showError(msg){ errBox.textContent = msg; errBox.style.display = "block"; }
+  function hideError(){ errBox.style.display = "none"; }
+
+  onAuthStateChanged(auth, (user)=>{
+    if(user) window.location.href = "Hub.html";
+  });
+
+  document.getElementById("btnSignIn").addEventListener("click", async ()=>{
+    hideError();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    if(!email || !password){ showError("Enter your email and password."); return; }
+    const btn = document.getElementById("btnSignIn");
+    btn.disabled = true; btn.textContent = "Signing in…";
+    try{
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "Hub.html";
+    }catch(err){
+      let msg = "Could not sign in. Check your email and password.";
+      if(err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") msg = "No account found with that email and password.";
+      if(err.code === "auth/wrong-password") msg = "Incorrect password.";
+      if(err.code === "auth/too-many-requests") msg = "Too many attempts. Please wait a moment and try again.";
+      if(err.code === "auth/invalid-email") msg = "That email address looks invalid.";
+      showError(msg);
+    }finally{
+      btn.disabled = false; btn.textContent = "Sign In";
+    }
+  });
+
+  document.getElementById("password").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("btnSignIn").click(); });
+
+  document.getElementById("btnReset").addEventListener("click", async ()=>{
+    hideError();
+    const email = document.getElementById("email").value.trim();
+    if(!email){ showError("Enter your email above first, then click 'Forgot password?'"); return; }
+    try{
+      await sendPasswordResetEmail(auth, email);
+      showError(""); errBox.style.color = "#2ec4b6"; errBox.style.background="#f0fbf9"; errBox.style.borderColor="#bfe9e2";
+      showError("Password reset email sent — check your inbox.");
+    }catch(err){
+      showError("Could not send reset email. Check the address and try again.");
+    }
+  });
+</script>
+</body>
+</html>
